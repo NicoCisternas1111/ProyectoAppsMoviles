@@ -10,8 +10,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.bibliotecaduoc.viewmodel.BooksViewModel
 import kotlinx.coroutines.launch
-
-// 🖼️ Imagen de portada
 import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.ContentScale
@@ -58,7 +56,6 @@ fun BookDetailsScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Top
             ) {
-                // Portada grande
                 if (!coverUri.isNullOrBlank()) {
                     AsyncImage(
                         model = coverUri,
@@ -70,7 +67,6 @@ fun BookDetailsScreen(
                             .clip(RoundedCornerShape(16.dp))
                     )
                 } else {
-                    // Placeholder cuando no hay portada
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -103,8 +99,6 @@ fun BookDetailsScreen(
                     OutlinedButton(onClick = { nav.popBackStack() }) {
                         Text("Volver")
                     }
-                    // Si en el futuro agregas edición, puedes sumar:
-                    // Button(onClick = { nav.navigate(Route.Edit.of(id)) }) { Text("Editar") }
                 }
             }
         }

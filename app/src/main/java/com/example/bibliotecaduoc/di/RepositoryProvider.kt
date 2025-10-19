@@ -15,7 +15,6 @@ object RepositoryProvider {
         if (_booksRepository == null) {
             synchronized(this) {
                 if (_booksRepository == null) {
-                    // ✅ Usamos build() en lugar de get()
                     val db = AppDatabase.build(context)
                     _booksRepository = RoomBooksRepository(db)
                 }

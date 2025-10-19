@@ -13,7 +13,6 @@ class BooksViewModel(
     private val repo: BooksRepository
 ) : ViewModel() {
 
-    // Exponemos el flujo del repo directamente (UI lo observará)
     val books: StateFlow<List<Book>> =
         repo.books.stateIn(
             scope = viewModelScope,
@@ -23,15 +22,6 @@ class BooksViewModel(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    init {
-        // Si quisieras simular una carga inicial:
-        // viewModelScope.launch {
-        //     _isLoading.value = true
-        //     delay(400)
-        //     _isLoading.value = false
-        // }
-    }
 
     fun addBook(book: Book, onInserted: (String) -> Unit = {}) {
         viewModelScope.launch {
@@ -55,7 +45,6 @@ class BooksViewModel(
     }
 
     companion object {
-        /** Factory local para inyectar repo sin Hilt */
         fun factory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {

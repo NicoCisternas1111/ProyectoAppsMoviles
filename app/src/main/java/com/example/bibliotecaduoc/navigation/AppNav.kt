@@ -19,7 +19,6 @@ import com.example.bibliotecaduoc.ui.screens.BookSummaryScreen
 import com.example.bibliotecaduoc.ui.screens.BooksScreen
 import com.example.bibliotecaduoc.ui.screens.HomeScreen
 
-// Rutas tipadas (usa tus mismas rutas)
 sealed class Route(val path: String) {
     data object Home    : Route("home")
     data object Books   : Route("books")

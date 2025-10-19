@@ -23,8 +23,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.imePadding
-
-// 🚀 NUEVOS IMPORTS
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
@@ -49,7 +47,6 @@ fun BookFormScreen(
     val scroll = rememberScrollState()
     val context = LocalContext.current
 
-    // ====== Launchers: Micrófono ======
     val speechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -77,7 +74,6 @@ fun BookFormScreen(
         }
     }
 
-    // ====== Launchers: Cámara ======
     val takePictureLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -101,17 +97,15 @@ fun BookFormScreen(
         }
     }
 
-    // ⚠️ Nada de Scaffold aquí. Ya tenemos Scaffold global en AppNav.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scroll)     // evita superposición
-            .imePadding()               // ajusta cuando aparece teclado
+            .verticalScroll(scroll)
+            .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
-        // Banner de errores basado en errorByField
         val hasAnyError = ui.errorByField.values.any { it != null }
         AnimatedVisibility(
             visible = hasAnyError,
@@ -134,7 +128,6 @@ fun BookFormScreen(
             }
         }
 
-        // TÍTULO
         OutlinedTextField(
             value = ui.title,
             onValueChange = vm::onTitleChange,
@@ -157,7 +150,6 @@ fun BookFormScreen(
         )
         Spacer(Modifier.height(12.dp))
 
-        // AUTOR
         OutlinedTextField(
             value = ui.author,
             onValueChange = vm::onAuthorChange,
@@ -180,7 +172,6 @@ fun BookFormScreen(
         )
         Spacer(Modifier.height(12.dp))
 
-        // AÑO
         OutlinedTextField(
             value = ui.year,
             onValueChange = vm::onYearChange,
@@ -204,33 +195,6 @@ fun BookFormScreen(
         )
         Spacer(Modifier.height(20.dp))
 
-        // (Opcional) DESCRIPCIÓN — descomenta si quieres mostrar el campo en UI
-        /*
-        OutlinedTextField(
-            value = ui.description,
-            onValueChange = vm::onDescriptionChange,
-            label = { Text("Descripción (opcional)") },
-            isError = ui.errorByField["description"] != null,
-            supportingText = {
-                AnimatedVisibility(
-                    visible = ui.errorByField["description"] != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit  = fadeOut() + shrinkVertically()
-                ) {
-                    Text(
-                        ui.errorByField["description"] ?: "",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 100.dp)
-        )
-        Spacer(Modifier.height(12.dp))
-        */
-
-        // ====== Acciones multimedia: Micrófono y Cámara ======
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -243,14 +207,11 @@ fun BookFormScreen(
             OutlinedButton(
                 onClick = {
                     requestCameraPermission.launch(Manifest.permission.CAMERA)
-                    // Si ya estaba concedido, también funcionará porque el callback se invoca con true.
-                    // Allí generamos el URI y lanzamos la cámara.
                 },
                 enabled = !ui.isSaving
             ) { Text("Tomar portada 📷") }
         }
 
-        // Preview de Portada (si existe)
         if (ui.coverUri != null) {
             Spacer(Modifier.height(12.dp))
             Card(

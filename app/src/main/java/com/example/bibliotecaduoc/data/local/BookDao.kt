@@ -13,7 +13,7 @@ interface BookDao {
     suspend fun getById(id: Long): BookEntity?
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insert(entity: BookEntity): Long  // <- devuelve el id autogenerado
+    suspend fun insert(entity: BookEntity): Long
 
     @Update
     suspend fun update(entity: BookEntity): Int

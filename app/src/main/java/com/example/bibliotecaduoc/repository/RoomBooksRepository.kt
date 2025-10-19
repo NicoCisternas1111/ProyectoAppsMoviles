@@ -7,9 +7,6 @@ import com.example.bibliotecaduoc.model.Book
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/**
- * Implementación de BooksRepository que usa Room para persistencia local.
- */
 class RoomBooksRepository(
     db: AppDatabase
 ) : BooksRepository {
@@ -26,7 +23,7 @@ class RoomBooksRepository(
 
     override suspend fun insert(book: Book): String {
         val entity = book.toEntity()
-        val generatedId = dao.insert(entity) // retorna Long
+        val generatedId = dao.insert(entity)
         return generatedId.toString()
     }
 

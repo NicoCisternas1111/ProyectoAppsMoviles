@@ -23,7 +23,5 @@ fun HomeScreen(
         Button(onClick = { nav.navigate(Route.Books.path) }) { Text("Ver libros") }
         Spacer(Modifier.height(8.dp))
         Button(onClick = { nav.navigate(Route.Form.path) }) { Text("Nuevo libro") }
-        // (Opcional) Snackbar de prueba:
-        // LaunchedEffect(Unit) { snackbarHostState.showSnackbar("Snackbar listo") }
     }
 }

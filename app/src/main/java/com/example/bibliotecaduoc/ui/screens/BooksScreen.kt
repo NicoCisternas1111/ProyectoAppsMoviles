@@ -19,8 +19,6 @@ import com.example.bibliotecaduoc.navigation.Route
 import com.example.bibliotecaduoc.viewmodel.BooksViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-
-// 🖼️ Coil + iconos
 import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -78,7 +76,6 @@ fun BooksScreen(
                             key = { it.id }
                         ) { b ->
                             ListItem(
-                                // 🖼️ Miniatura de portada (si hay coverUri) o icono de relleno
                                 leadingContent = {
                                     if (!b.coverUri.isNullOrBlank()) {
                                         AsyncImage(
@@ -103,7 +100,6 @@ fun BooksScreen(
                                 supportingContent = {
                                     Text(b.author)
                                 },
-                                // 📅 Año a la derecha si existe
                                 trailingContent = {
                                     b.year?.let { y ->
                                         Text(y.toString(), style = MaterialTheme.typography.labelLarge)
