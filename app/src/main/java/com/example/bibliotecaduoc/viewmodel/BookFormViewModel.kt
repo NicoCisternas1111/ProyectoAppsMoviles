@@ -32,6 +32,34 @@ class BookFormViewModel(
     private val _uiState = MutableStateFlow(BookFormUiState())
     val uiState: StateFlow<BookFormUiState> = _uiState.asStateFlow()
 
+    private var currentBookId: String? = null
+
+    fun loadBook(id: String?) {
+        if (id == null) {
+            currentBookId = null
+            _uiState.value = BookFormUiState()
+            return
+        }
+
+        currentBookId = id
+        viewModelScope.launch {
+            val book = repo.getById(id)
+            if (book != null) {
+                _uiState.update {
+                    it.copy(
+                        title = book.title,
+                        author = book.author,
+                        year = book.year?.toString() ?: "",
+                        description = "", // O carga la descripción si la guardas
+                        coverUri = book.coverUri,
+                        isDirty = false
+                    )
+                }
+                validate()
+            }
+        }
+    }
+
     fun onTitleChange(value: String) {
         _uiState.update { it.copy(title = value, isDirty = true) }
         validate()
@@ -96,7 +124,7 @@ class BookFormViewModel(
         return if (yr in min..max) null else "Debe estar entre $min y $max"
     }
 
-    fun submit(onInserted: (String) -> Unit, onError: (String) -> Unit) {
+    fun submit(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
         val s = _uiState.value
         if (!s.isValid || s.isSaving) return
 
@@ -105,18 +133,34 @@ class BookFormViewModel(
         viewModelScope.launch {
             try {
                 val yearInt = s.year.toIntOrNull()
-                val book = Book(
-                    id = "",
-                    title = s.title.trim(),
-                    author = s.author.trim(),
-                    year = yearInt,
-                    coverUri = s.coverUri
-                )
-                val id = repo.insert(book)
-                _uiState.update { it.copy(isSaving = false) }
-                onInserted(id)
 
-                _uiState.value = BookFormUiState()
+                if (currentBookId == null) {
+                    // --- CREAR ---
+                    val book = Book(
+                        id = "",
+                        title = s.title.trim(),
+                        author = s.author.trim(),
+                        year = yearInt,
+                        coverUri = s.coverUri
+                    )
+                    val id = repo.insert(book)
+                    _uiState.update { it.copy(isSaving = false) }
+                    onSuccess(id)
+                    _uiState.value = BookFormUiState()
+
+                } else {
+                    // --- ACTUALIZAR ---
+                    val book = Book(
+                        id = currentBookId!!,
+                        title = s.title.trim(),
+                        author = s.author.trim(),
+                        year = yearInt,
+                        coverUri = s.coverUri
+                    )
+                    repo.update(book)
+                    _uiState.update { it.copy(isSaving = false) }
+                    onSuccess(currentBookId!!)
+                }
 
             } catch (e: Exception) {
                 _uiState.update { it.copy(isSaving = false) }

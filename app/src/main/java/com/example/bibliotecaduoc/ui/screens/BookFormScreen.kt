@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.imePadding
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,12 +41,17 @@ import com.example.bibliotecaduoc.ui.utils.ImageUriUtils
 fun BookFormScreen(
     nav: NavController,
     snackbarHostState: SnackbarHostState,
-    vm: BookFormViewModel = viewModel(factory = BookFormViewModel.factory())
+    vm: BookFormViewModel = viewModel(factory = BookFormViewModel.factory()),
+    bookId: String?
 ) {
     val ui by vm.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val scroll = rememberScrollState()
     val context = LocalContext.current
+
+    LaunchedEffect(bookId) {
+        vm.loadBook(bookId)
+    }
 
     val speechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -97,6 +103,21 @@ fun BookFormScreen(
         }
     }
 
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(uri, flags)
+                vm.setCoverUri(uri.toString())
+            } catch (e: SecurityException) {
+                e.printStackTrace()
+                scope.launch { snackbarHostState.showSnackbar("No se pudo obtener permiso para la imagen") }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -110,7 +131,7 @@ fun BookFormScreen(
         AnimatedVisibility(
             visible = hasAnyError,
             enter = fadeIn() + expandVertically(),
-            exit  = fadeOut() + shrinkVertically()
+            exit = fadeOut() + shrinkVertically()
         ) {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
@@ -137,7 +158,7 @@ fun BookFormScreen(
                 AnimatedVisibility(
                     visible = ui.errorByField["title"] != null,
                     enter = fadeIn() + expandVertically(),
-                    exit  = fadeOut() + shrinkVertically()
+                    exit = fadeOut() + shrinkVertically()
                 ) {
                     Text(
                         ui.errorByField["title"] ?: "",
@@ -159,7 +180,7 @@ fun BookFormScreen(
                 AnimatedVisibility(
                     visible = ui.errorByField["author"] != null,
                     enter = fadeIn() + expandVertically(),
-                    exit  = fadeOut() + shrinkVertically()
+                    exit = fadeOut() + shrinkVertically()
                 ) {
                     Text(
                         ui.errorByField["author"] ?: "",
@@ -181,7 +202,7 @@ fun BookFormScreen(
                 AnimatedVisibility(
                     visible = ui.errorByField["year"] != null,
                     enter = fadeIn() + expandVertically(),
-                    exit  = fadeOut() + shrinkVertically()
+                    exit = fadeOut() + shrinkVertically()
                 ) {
                     Text(
                         ui.errorByField["year"] ?: "",
@@ -197,19 +218,29 @@ fun BookFormScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedButton(
                 onClick = { requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO) },
-                enabled = !ui.isSaving
-            ) { Text("Dictar descripción 🎤") }
+                enabled = !ui.isSaving,
+                modifier = Modifier.weight(1f)
+            ) { Text("Dictar 🎤") }
 
             OutlinedButton(
                 onClick = {
                     requestCameraPermission.launch(Manifest.permission.CAMERA)
                 },
-                enabled = !ui.isSaving
-            ) { Text("Tomar portada 📷") }
+                enabled = !ui.isSaving,
+                modifier = Modifier.weight(1f)
+            ) { Text("Cámara 📷") }
+
+            OutlinedButton(
+                onClick = {
+                    imagePickerLauncher.launch("image/*")
+                },
+                enabled = !ui.isSaving,
+                modifier = Modifier.weight(1f)
+            ) { Text("Galería 🖼️") }
         }
 
         if (ui.coverUri != null) {
@@ -223,7 +254,8 @@ fun BookFormScreen(
                 AsyncImage(
                     model = ui.coverUri,
                     contentDescription = "Portada",
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
@@ -239,10 +271,16 @@ fun BookFormScreen(
             Button(
                 onClick = {
                     vm.submit(
-                        onInserted = { id ->
-                            scope.launch { snackbarHostState.showSnackbar("Libro creado") }
-                            nav.navigate(Route.Details.of(id)) {
-                                popUpTo(Route.Books.path) { inclusive = false }
+                        onSuccess = { id ->
+                            val message = if (bookId == null) "Libro creado" else "Libro actualizado"
+                            scope.launch { snackbarHostState.showSnackbar(message) }
+
+                            if (bookId == null) {
+                                nav.navigate(Route.Details.of(id)) {
+                                    popUpTo(Route.Books.path) { inclusive = false }
+                                }
+                            } else {
+                                nav.popBackStack()
                             }
                         },
                         onError = { msg ->
@@ -250,7 +288,7 @@ fun BookFormScreen(
                         }
                     )
                 },
-                enabled = ui.isValid && !ui.isSaving,
+                enabled = ui.isValid && !ui.isSaving && ui.isDirty,
                 modifier = Modifier.animateContentSize()
             ) {
                 if (ui.isSaving) {
@@ -259,7 +297,7 @@ fun BookFormScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Guardar")
+                    Text(if (bookId == null) "Crear" else "Actualizar")
                 }
             }
         }

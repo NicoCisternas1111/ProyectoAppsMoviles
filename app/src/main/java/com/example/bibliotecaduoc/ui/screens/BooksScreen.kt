@@ -22,6 +22,7 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Image
 
 @Composable
@@ -42,74 +43,91 @@ fun BooksScreen(
 
     val listState = rememberLazyListState()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Crossfade(targetState = uiState, label = "books-crossfade") { state ->
-            when (state) {
-                "loading" -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+    Scaffold(
+        floatingActionButton = {
+            if (uiState == "content") {
+                FloatingActionButton(
+                    onClick = {
+                        nav.navigate(Route.Form.path) // <-- CAMBIO AQUÍ
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Crear nuevo libro")
                 }
-                "empty" -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Aún no hay libros", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(8.dp))
-                        Text("Crea tu primer libro para comenzar.", style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = { nav.navigate(Route.Form.path) }) {
-                            Text("Crear primer libro")
+            }
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Crossfade(targetState = uiState, label = "books-crossfade") { state ->
+                when (state) {
+                    "loading" -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    "empty" -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Aún no hay libros", style = MaterialTheme.typography.titleMedium)
+                            Spacer(Modifier.height(8.dp))
+                            Text("Crea tu primer libro para comenzar.", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = {
+                                nav.navigate(Route.Form.path) // <-- CAMBIO AQUÍ
+                            }) {
+                                Text("Crear primer libro")
+                            }
                         }
                     }
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        state = listState
-                    ) {
-                        items(
-                            items = books,
-                            key = { it.id }
-                        ) { b ->
-                            ListItem(
-                                leadingContent = {
-                                    if (!b.coverUri.isNullOrBlank()) {
-                                        AsyncImage(
-                                            model = b.coverUri,
-                                            contentDescription = "Portada de ${b.title}",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .size(56.dp)
-                                                .clip(RoundedCornerShape(10.dp))
-                                        )
-                                    } else {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Image,
-                                            contentDescription = "Sin portada",
-                                            modifier = Modifier.size(56.dp)
-                                        )
-                                    }
-                                },
-                                headlineContent = {
-                                    Text(b.title, style = MaterialTheme.typography.titleMedium)
-                                },
-                                supportingContent = {
-                                    Text(b.author)
-                                },
-                                trailingContent = {
-                                    b.year?.let { y ->
-                                        Text(y.toString(), style = MaterialTheme.typography.labelLarge)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { nav.navigate(Route.Details.of(b.id)) }
-                            )
-                            HorizontalDivider()
+                    "content" -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            state = listState
+                        ) {
+                            items(
+                                items = books,
+                                key = { it.id }
+                            ) { b ->
+                                ListItem(
+                                    leadingContent = {
+                                        if (!b.coverUri.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = b.coverUri,
+                                                contentDescription = "Portada de ${b.title}",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .size(56.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Image,
+                                                contentDescription = "Sin portada",
+                                                modifier = Modifier.size(56.dp)
+                                            )
+                                        }
+                                    },
+                                    headlineContent = {
+                                        Text(b.title, style = MaterialTheme.typography.titleMedium)
+                                    },
+                                    supportingContent = {
+                                        Text(b.author)
+                                    },
+                                    trailingContent = {
+                                        b.year?.let { y ->
+                                            Text(y.toString(), style = MaterialTheme.typography.labelLarge)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { nav.navigate(Route.Details.of(b.id)) }
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }

@@ -25,7 +25,11 @@ sealed class Route(val path: String) {
     data object Details : Route("details/{id}") {
         fun of(id: String) = "details/$id"
     }
+    // Rutas separadas: una para crear, otra para editar
     data object Form    : Route("bookForm")
+    data object Edit    : Route("bookEdit/{id}") {
+        fun of(id: String) = "bookEdit/$id"
+    }
     data object Summary : Route("bookSummary")
 }
 
@@ -35,6 +39,7 @@ private fun titleFor(route: String?): String = when {
     route.startsWith(Route.Books.path) -> "Libros"
     route.startsWith("details/") -> "Detalle"
     route.startsWith(Route.Form.path) -> "Nuevo libro"
+    route.startsWith("bookEdit/") -> "Editar libro"
     route.startsWith(Route.Summary.path) -> "Resumen"
     else -> "Biblioteca"
 }
@@ -88,9 +93,29 @@ fun AppNav(windowSizeClass: WindowSizeClass) {
                 val id = backStackEntry.arguments?.getString("id") ?: ""
                 BookDetailsScreen(nav = nav, id = id, snackbarHostState = snackbarHostState)
             }
+
             composable(Route.Form.path) {
-                BookFormScreen(nav = nav, snackbarHostState = snackbarHostState)
+                BookFormScreen(
+                    nav = nav,
+                    snackbarHostState = snackbarHostState,
+                    bookId = null
+                )
             }
+
+            composable(
+                route = Route.Edit.path,
+                arguments = listOf(navArgument("id") {
+                    type = NavType.StringType
+                })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("id")
+                BookFormScreen(
+                    nav = nav,
+                    snackbarHostState = snackbarHostState,
+                    bookId = id
+                )
+            }
+
             composable(Route.Summary.path) {
                 BookSummaryScreen(nav = nav, snackbarHostState = snackbarHostState)
             }
