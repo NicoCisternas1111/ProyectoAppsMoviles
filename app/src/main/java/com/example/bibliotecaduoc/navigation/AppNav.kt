@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import com.example.bibliotecaduoc.ui.screens.BookDetailsScreen
 import com.example.bibliotecaduoc.ui.screens.BookFormScreen
-import com.example.bibliotecaduoc.ui.screens.BookSummaryScreen
+// Import de BookSummaryScreen eliminado
 import com.example.bibliotecaduoc.ui.screens.BooksScreen
 import com.example.bibliotecaduoc.ui.screens.HomeScreen
 
@@ -25,12 +25,10 @@ sealed class Route(val path: String) {
     data object Details : Route("details/{id}") {
         fun of(id: String) = "details/$id"
     }
-    // Rutas separadas: una para crear, otra para editar
     data object Form    : Route("bookForm")
     data object Edit    : Route("bookEdit/{id}") {
         fun of(id: String) = "bookEdit/$id"
     }
-    data object Summary : Route("bookSummary")
 }
 
 private fun titleFor(route: String?): String = when {
@@ -40,7 +38,6 @@ private fun titleFor(route: String?): String = when {
     route.startsWith("details/") -> "Detalle"
     route.startsWith(Route.Form.path) -> "Nuevo libro"
     route.startsWith("bookEdit/") -> "Editar libro"
-    route.startsWith(Route.Summary.path) -> "Resumen"
     else -> "Biblioteca"
 }
 
@@ -116,9 +113,6 @@ fun AppNav(windowSizeClass: WindowSizeClass) {
                 )
             }
 
-            composable(Route.Summary.path) {
-                BookSummaryScreen(nav = nav, snackbarHostState = snackbarHostState)
-            }
         }
     }
 }

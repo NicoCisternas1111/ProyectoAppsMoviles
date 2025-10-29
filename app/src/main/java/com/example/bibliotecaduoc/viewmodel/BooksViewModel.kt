@@ -13,12 +13,32 @@ class BooksViewModel(
     private val repo: BooksRepository
 ) : ViewModel() {
 
+    private val _allBooks = repo.books
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+    }
+
     val books: StateFlow<List<Book>> =
-        repo.books.stateIn(
+        combine(_allBooks, _searchQuery) { allBooks, query ->
+            if (query.isBlank()) {
+                allBooks
+            } else {
+                allBooks.filter { book ->
+                    book.title.contains(query, ignoreCase = true) ||
+                            book.author.contains(query, ignoreCase = true) ||
+                            book.year?.toString()?.contains(query) == true
+                }
+            }
+        }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()

@@ -21,9 +21,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 
 @Composable
 fun BooksScreen(
@@ -33,22 +38,25 @@ fun BooksScreen(
     vm: BooksViewModel = viewModel(factory = BooksViewModel.factory())
 ) {
     val books by vm.books.collectAsStateWithLifecycle(initialValue = emptyList())
+    val searchQuery by vm.searchQuery.collectAsStateWithLifecycle()
     val isLoading by vm.isLoading.collectAsStateWithLifecycle(initialValue = false)
 
     val uiState = when {
         isLoading -> "loading"
-        books.isEmpty() -> "empty"
+        books.isEmpty() && searchQuery.isBlank() -> "empty"
+        books.isEmpty() && searchQuery.isNotBlank() -> "no_results"
         else -> "content"
     }
 
     val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
 
     Scaffold(
         floatingActionButton = {
-            if (uiState == "content") {
+            if (uiState == "content" || uiState == "no_results") {
                 FloatingActionButton(
                     onClick = {
-                        nav.navigate(Route.Form.path) // <-- CAMBIO AQUÍ
+                        nav.navigate(Route.Form.path)
                     }
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Crear nuevo libro")
@@ -56,77 +64,108 @@ fun BooksScreen(
             }
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Crossfade(targetState = uiState, label = "books-crossfade") { state ->
-                when (state) {
-                    "loading" -> {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    }
-                    "empty" -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("Aún no hay libros", style = MaterialTheme.typography.titleMedium)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Crea tu primer libro para comenzar.", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(Modifier.height(16.dp))
-                            Button(onClick = {
-                                nav.navigate(Route.Form.path) // <-- CAMBIO AQUÍ
-                            }) {
-                                Text("Crear primer libro")
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = vm::onSearchQueryChange,
+                label = { Text("Buscar por título, autor o año") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Buscar")
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = {
+                    focusManager.clearFocus()
+                })
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Crossfade(targetState = uiState, label = "books-crossfade") { state ->
+                    when (state) {
+                        "loading" -> {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        }
+                        "empty" -> {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("Aún no hay libros", style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Crea tu primer libro para comenzar.", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(Modifier.height(16.dp))
+                                Button(onClick = {
+                                    nav.navigate(Route.Form.path)
+                                }) {
+                                    Text("Crear primer libro")
+                                }
                             }
                         }
-                    }
-                    "content" -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            state = listState
-                        ) {
-                            items(
-                                items = books,
-                                key = { it.id }
-                            ) { b ->
-                                ListItem(
-                                    leadingContent = {
-                                        if (!b.coverUri.isNullOrBlank()) {
-                                            AsyncImage(
-                                                model = b.coverUri,
-                                                contentDescription = "Portada de ${b.title}",
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier
-                                                    .size(56.dp)
-                                                    .clip(RoundedCornerShape(10.dp))
-                                            )
-                                        } else {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Image,
-                                                contentDescription = "Sin portada",
-                                                modifier = Modifier.size(56.dp)
-                                            )
-                                        }
-                                    },
-                                    headlineContent = {
-                                        Text(b.title, style = MaterialTheme.typography.titleMedium)
-                                    },
-                                    supportingContent = {
-                                        Text(b.author)
-                                    },
-                                    trailingContent = {
-                                        b.year?.let { y ->
-                                            Text(y.toString(), style = MaterialTheme.typography.labelLarge)
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { nav.navigate(Route.Details.of(b.id)) }
-                                )
-                                HorizontalDivider()
+                        "no_results" -> {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("No se encontraron resultados", style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Intenta con otra palabra clave.", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                        "content" -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                state = listState
+                            ) {
+                                items(
+                                    items = books,
+                                    key = { it.id }
+                                ) { b ->
+                                    ListItem(
+                                        leadingContent = {
+                                            if (!b.coverUri.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = b.coverUri,
+                                                    contentDescription = "Portada de ${b.title}",
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier
+                                                        .size(56.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Image,
+                                                    contentDescription = "Sin portada",
+                                                    modifier = Modifier.size(56.dp)
+                                                )
+                                            }
+                                        },
+                                        headlineContent = {
+                                            Text(b.title, style = MaterialTheme.typography.titleMedium)
+                                        },
+                                        supportingContent = {
+                                            Text(b.author)
+                                        },
+                                        trailingContent = {
+                                            b.year?.let { y ->
+                                                Text(y.toString(), style = MaterialTheme.typography.labelLarge)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { nav.navigate(Route.Details.of(b.id)) }
+                                    )
+                                    HorizontalDivider()
+                                }
                             }
                         }
                     }

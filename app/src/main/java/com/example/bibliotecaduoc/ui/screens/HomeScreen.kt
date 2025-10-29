@@ -25,7 +25,7 @@ fun HomeScreen(
         Spacer(Modifier.height(32.dp))
 
         Button(
-            onClick = { nav.navigate(Route.Form.path) }, // <-- CAMBIO AQUÍ
+            onClick = { nav.navigate(Route.Form.path) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Nuevo libro")
@@ -38,15 +38,6 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Ver mis libros")
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedButton(
-            onClick = { nav.navigate(Route.Summary.path) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Resumen")
         }
     }
 }
