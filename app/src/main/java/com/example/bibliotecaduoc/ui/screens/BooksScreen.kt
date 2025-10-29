@@ -26,9 +26,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun BooksScreen(
@@ -53,7 +54,7 @@ fun BooksScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (uiState == "content" || uiState == "no_results") {
+            if (uiState == "content" || uiState == "no_results" || uiState == "empty") {
                 FloatingActionButton(
                     onClick = {
                         nav.navigate(Route.Form.path)
@@ -124,53 +125,90 @@ fun BooksScreen(
                         "content" -> {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                state = listState
+                                state = listState,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(bottom = 80.dp)
                             ) {
                                 items(
                                     items = books,
                                     key = { it.id }
                                 ) { b ->
-                                    ListItem(
-                                        leadingContent = {
-                                            if (!b.coverUri.isNullOrBlank()) {
-                                                AsyncImage(
-                                                    model = b.coverUri,
-                                                    contentDescription = "Portada de ${b.title}",
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier
-                                                        .size(56.dp)
-                                                        .clip(RoundedCornerShape(10.dp))
-                                                )
-                                            } else {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Image,
-                                                    contentDescription = "Sin portada",
-                                                    modifier = Modifier.size(56.dp)
-                                                )
-                                            }
-                                        },
-                                        headlineContent = {
-                                            Text(b.title, style = MaterialTheme.typography.titleMedium)
-                                        },
-                                        supportingContent = {
-                                            Text(b.author)
-                                        },
-                                        trailingContent = {
-                                            b.year?.let { y ->
-                                                Text(y.toString(), style = MaterialTheme.typography.labelLarge)
-                                            }
-                                        },
+                                    ElevatedCard(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { nav.navigate(Route.Details.of(b.id)) }
-                                    )
-                                    HorizontalDivider()
+                                            .clickable { nav.navigate(Route.Details.of(b.id)) },
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            // Portada del libro
+                                            BookCoverImage(b.coverUri, b.title)
+
+                                            // Información del libro
+                                            Column(
+                                                modifier = Modifier
+                                                    .padding(16.dp)
+                                                    .weight(1f)
+                                            ) {
+                                                Text(
+                                                    text = b.title,
+                                                    style = MaterialTheme.typography.titleLarge,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(Modifier.height(4.dp))
+                                                Text(
+                                                    text = b.author,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                b.year?.let { y ->
+                                                    Spacer(Modifier.height(8.dp))
+                                                    Text(
+                                                        text = y.toString(),
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                            // --- AQUÍ TERMINA EL CAMBIO DE DISEÑO ---
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BookCoverImage(coverUri: String?, title: String) {
+    Box(
+        modifier = Modifier
+            .size(width = 100.dp, height = 150.dp)
+            .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (!coverUri.isNullOrBlank()) {
+            AsyncImage(
+                model = coverUri,
+                contentDescription = "Portada de $title",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Outlined.Book,
+                contentDescription = "Sin portada",
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
