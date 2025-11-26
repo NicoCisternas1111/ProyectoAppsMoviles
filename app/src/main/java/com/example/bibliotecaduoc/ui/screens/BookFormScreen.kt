@@ -8,7 +8,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,6 +52,7 @@ fun BookFormScreen(
         vm.loadBook(bookId)
     }
 
+    // Dictado por voz
     val speechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -80,6 +80,7 @@ fun BookFormScreen(
         }
     }
 
+    // Cámara
     val takePictureLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -103,6 +104,7 @@ fun BookFormScreen(
         }
     }
 
+    // Galería
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -149,6 +151,7 @@ fun BookFormScreen(
             }
         }
 
+        // Título
         OutlinedTextField(
             value = ui.title,
             onValueChange = vm::onTitleChange,
@@ -171,6 +174,7 @@ fun BookFormScreen(
         )
         Spacer(Modifier.height(12.dp))
 
+        // Autor
         OutlinedTextField(
             value = ui.author,
             onValueChange = vm::onAuthorChange,
@@ -191,31 +195,10 @@ fun BookFormScreen(
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(12.dp))
 
-        OutlinedTextField(
-            value = ui.year,
-            onValueChange = vm::onYearChange,
-            label = { Text("Año") },
-            isError = ui.errorByField["year"] != null,
-            supportingText = {
-                AnimatedVisibility(
-                    visible = ui.errorByField["year"] != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Text(
-                        ui.errorByField["year"] ?: "",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
         Spacer(Modifier.height(20.dp))
 
+        // Botones de dictado / cámara / galería (portada)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -243,6 +226,7 @@ fun BookFormScreen(
             ) { Text("Galería 🖼️") }
         }
 
+        // Preview de portada
         if (ui.coverUri != null) {
             Spacer(Modifier.height(12.dp))
             Card(
@@ -262,6 +246,7 @@ fun BookFormScreen(
 
         Spacer(Modifier.height(20.dp))
 
+        // Botones guardar / cancelar
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
                 onClick = { nav.popBackStack() },

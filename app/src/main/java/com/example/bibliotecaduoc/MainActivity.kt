@@ -9,13 +9,17 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import com.example.bibliotecaduoc.di.RepositoryProvider
 import com.example.bibliotecaduoc.navigation.AppNav
 import com.example.bibliotecaduoc.ui.theme.BibliotecaDuocTheme
+import com.example.bibliotecaduoc.session.SessionManager
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SessionManager.init(applicationContext)
+        RepositoryProvider.init(applicationContext)
         com.example.bibliotecaduoc.di.RepositoryProvider.init(applicationContext)
         setContent {
             BibliotecaDuocTheme {

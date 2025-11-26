@@ -30,12 +30,16 @@ import androidx.compose.material.icons.outlined.Book
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import com.example.bibliotecaduoc.viewmodel.CartViewModel
+import com.example.bibliotecaduoc.session.SessionManager
+import kotlinx.coroutines.launch
 
 @Composable
 fun BooksScreen(
     nav: NavController,
     snackbarHostState: SnackbarHostState,
     windowSizeClass: WindowSizeClass,
+    cartVm: CartViewModel,
     vm: BooksViewModel = viewModel(factory = BooksViewModel.factory())
 ) {
     val books by vm.books.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -51,10 +55,14 @@ fun BooksScreen(
 
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+
+    val isAdmin = SessionManager.getUserRole()
+        ?.equals("ADMIN", ignoreCase = true) == true
 
     Scaffold(
         floatingActionButton = {
-            if (uiState == "content" || uiState == "no_results" || uiState == "empty") {
+            if (isAdmin && (uiState == "content" || uiState == "no_results" || uiState == "empty")) {
                 FloatingActionButton(
                     onClick = {
                         nav.navigate(Route.Form.path)
@@ -86,7 +94,19 @@ fun BooksScreen(
                 })
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
+
+            // Botón para ir al carrito
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { nav.navigate(Route.Cart.path) }) {
+                    Text("Ver carrito")
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             Box(
                 modifier = Modifier.fillMaxSize()
@@ -96,32 +116,54 @@ fun BooksScreen(
                         "loading" -> {
                             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                         }
+
                         "empty" -> {
                             Column(
                                 modifier = Modifier.align(Alignment.Center),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("Aún no hay libros", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "Aún no hay libros",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
                                 Spacer(Modifier.height(8.dp))
-                                Text("Crea tu primer libro para comenzar.", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(Modifier.height(16.dp))
-                                Button(onClick = {
-                                    nav.navigate(Route.Form.path)
-                                }) {
-                                    Text("Crear primer libro")
+                                if (isAdmin) {
+                                    Text(
+                                        "Crea tu primer libro para comenzar.",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Spacer(Modifier.height(16.dp))
+                                    Button(onClick = {
+                                        nav.navigate(Route.Form.path)
+                                    }) {
+                                        Text("Crear primer libro")
+                                    }
+                                } else {
+                                    Text(
+                                        "Contacta a un administrador para que agregue libros.",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
                                 }
                             }
                         }
+
                         "no_results" -> {
                             Column(
                                 modifier = Modifier.align(Alignment.Center),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("No se encontraron resultados", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "No se encontraron resultados",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
                                 Spacer(Modifier.height(8.dp))
-                                Text("Intenta con otra palabra clave.", style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "Intenta con otra palabra clave.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                         }
+
                         "content" -> {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
@@ -136,25 +178,30 @@ fun BooksScreen(
                                     ElevatedCard(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { nav.navigate(Route.Details.of(b.id)) },
+                                            .clickable {
+                                                nav.navigate(Route.Details.of(b.id))
+                                            },
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Row(
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            // Portada del libro
+                                            // Portada
                                             BookCoverImage(b.coverUri, b.title)
 
-                                            // Información del libro
+                                            Spacer(Modifier.width(12.dp))
+
                                             Column(
                                                 modifier = Modifier
-                                                    .padding(16.dp)
                                                     .weight(1f)
+                                                    .padding(vertical = 8.dp)
                                             ) {
                                                 Text(
                                                     text = b.title,
-                                                    style = MaterialTheme.typography.titleLarge,
+                                                    style = MaterialTheme.typography.titleMedium,
                                                     maxLines = 2,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
@@ -165,20 +212,56 @@ fun BooksScreen(
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
-                                                b.year?.let { y ->
-                                                    Spacer(Modifier.height(8.dp))
+
+                                                Spacer(Modifier.height(8.dp))
+
+                                                Text(
+                                                    text = "$${b.price}",
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+
+                                                Spacer(Modifier.height(4.dp))
+
+                                                if (b.stock <= 0) {
                                                     Text(
-                                                        text = y.toString(),
-                                                        style = MaterialTheme.typography.labelMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        text = "Agotado",
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        style = MaterialTheme.typography.labelMedium
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = "Stock: ${b.stock}",
+                                                        style = MaterialTheme.typography.labelMedium
                                                     )
                                                 }
+                                            }
+
+                                            Spacer(Modifier.width(8.dp))
+
+                                            val isOutOfStock = b.stock <= 0
+
+                                            Button(
+                                                onClick = {
+                                                    if (!isOutOfStock) {
+                                                        cartVm.addToCart(b)
+                                                        scope.launch {
+                                                            snackbarHostState.showSnackbar(
+                                                                "Agregado al carrito: ${b.title}"
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                enabled = !isOutOfStock
+                                            ) {
+                                                Text(
+                                                    text = if (isOutOfStock) "Agotado" else "Agregar"
+                                                )
                                             }
                                         }
                                     }
                                 }
                             }
-                            // --- AQUÍ TERMINA EL CAMBIO DE DISEÑO ---
                         }
                     }
                 }

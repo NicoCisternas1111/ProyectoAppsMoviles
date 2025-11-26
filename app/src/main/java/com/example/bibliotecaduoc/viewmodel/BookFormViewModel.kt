@@ -11,12 +11,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Year
 
 data class BookFormUiState(
     val title: String = "",
     val author: String = "",
-    val year: String = "",
+    val category: String = "",
+    val price: String = "",
+    val stock: String = "",
     val description: String = "",
     val coverUri: String? = null,
     val errorByField: Map<String, String?> = emptyMap(),
@@ -35,28 +36,25 @@ class BookFormViewModel(
     private var currentBookId: String? = null
 
     fun loadBook(id: String?) {
-        if (id == null) {
-            currentBookId = null
-            _uiState.value = BookFormUiState()
-            return
-        }
+        if (id == null) return
 
-        currentBookId = id
         viewModelScope.launch {
-            val book = repo.getById(id)
-            if (book != null) {
-                _uiState.update {
-                    it.copy(
-                        title = book.title,
-                        author = book.author,
-                        year = book.year?.toString() ?: "",
-                        description = "", // O carga la descripción si la guardas
-                        coverUri = book.coverUri,
-                        isDirty = false
-                    )
-                }
-                validate()
+            val book = repo.getById(id) ?: return@launch
+            currentBookId = book.id
+
+            _uiState.update {
+                it.copy(
+                    title = book.title,
+                    author = book.author,
+                    category = book.category,
+                    price = if (book.price > 0) book.price.toString() else "",
+                    stock = if (book.stock > 0) book.stock.toString() else "",
+                    description = "",          // puedes rellenar si algún día lo guardas
+                    coverUri = book.coverUri,
+                    isDirty = false
+                )
             }
+            validate()
         }
     }
 
@@ -70,8 +68,18 @@ class BookFormViewModel(
         validate()
     }
 
-    fun onYearChange(value: String) {
-        _uiState.update { it.copy(year = value, isDirty = true) }
+    fun onCategoryChange(value: String) {
+        _uiState.update { it.copy(category = value, isDirty = true) }
+        validate()
+    }
+
+    fun onPriceChange(value: String) {
+        _uiState.update { it.copy(price = value, isDirty = true) }
+        validate()
+    }
+
+    fun onStockChange(value: String) {
+        _uiState.update { it.copy(stock = value, isDirty = true) }
         validate()
     }
 
@@ -94,15 +102,29 @@ class BookFormViewModel(
         val s = _uiState.value
         val errs = mutableMapOf<String, String?>()
 
-        if (s.title.isBlank()) errs["title"] = "El título es obligatorio"
-        else if (s.title.length < 2) errs["title"] = "Mínimo 2 caracteres"
+        errs["author"] = if (s.author.isBlank()) "El autor es obligatorio" else null
+        errs["category"] = if (s.category.isBlank()) "La categoría es obligatoria" else null
 
-        if (s.author.isBlank()) errs["author"] = "El autor es obligatorio"
-        else if (s.author.length < 2) errs["author"] = "Mínimo 2 caracteres"
+        // precio
+        errs["price"] = when {
+            s.price.isBlank() -> "El precio es obligatorio"
+            s.price.toIntOrNull() == null -> "Debe ser numérico"
+            s.price.toInt() < 0 -> "Debe ser un número positivo"
+            else -> null
+        }
 
-        val yearErr = validateYear(s.year)
-        if (yearErr != null) errs["year"] = yearErr
+        // stock
+        errs["stock"] = when {
+            s.stock.isBlank() -> "El stock es obligatorio"
+            s.stock.toIntOrNull() == null -> "Debe ser numérico"
+            s.stock.toInt() < 0 -> "Debe ser un número positivo"
+            else -> null
+        }
 
+        // título
+        errs["title"] = if (s.title.isBlank()) "El título es obligatorio" else null
+
+        // descripción opcional
         if (s.description.isNotBlank() && s.description.length < 5) {
             errs["description"] = "Si agregas descripción, usa al menos 5 caracteres"
         }
@@ -110,18 +132,11 @@ class BookFormViewModel(
         val valid = errs.values.all { it == null } &&
                 s.title.isNotBlank() &&
                 s.author.isNotBlank() &&
-                s.year.isNotBlank()
+                s.category.isNotBlank() &&
+                s.price.isNotBlank() &&
+                s.stock.isNotBlank()
 
         _uiState.update { it.copy(errorByField = errs, isValid = valid) }
-    }
-
-    private fun validateYear(value: String): String? {
-        if (value.isBlank()) return "El año es obligatorio"
-        val yr = value.toIntOrNull() ?: return "Debe ser numérico"
-        val current = Year.now().value
-        val min = 1400
-        val max = current + 1
-        return if (yr in min..max) null else "Debe estar entre $min y $max"
     }
 
     fun submit(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
@@ -132,36 +147,41 @@ class BookFormViewModel(
 
         viewModelScope.launch {
             try {
-                val yearInt = s.year.toIntOrNull()
+                val priceInt = s.price.toIntOrNull() ?: 0
+                val stockInt = s.stock.toIntOrNull() ?: 0
 
                 if (currentBookId == null) {
-                    // --- CREAR ---
+                    // CREAR
                     val book = Book(
                         id = "",
                         title = s.title.trim(),
                         author = s.author.trim(),
-                        year = yearInt,
+                        category = s.category.trim(),
+                        price = priceInt,
+                        stock = stockInt,
+                        year = null,              // 👈 año ya no se usa
                         coverUri = s.coverUri
                     )
                     val id = repo.insert(book)
                     _uiState.update { it.copy(isSaving = false) }
                     onSuccess(id)
                     _uiState.value = BookFormUiState()
-
                 } else {
-                    // --- ACTUALIZAR ---
+                    // ACTUALIZAR
                     val book = Book(
                         id = currentBookId!!,
                         title = s.title.trim(),
                         author = s.author.trim(),
-                        year = yearInt,
+                        category = s.category.trim(),
+                        price = priceInt,
+                        stock = stockInt,
+                        year = null,              // 👈 mantenemos null
                         coverUri = s.coverUri
                     )
                     repo.update(book)
                     _uiState.update { it.copy(isSaving = false) }
-                    onSuccess(currentBookId!!)
+                    onSuccess(book.id)
                 }
-
             } catch (e: Exception) {
                 _uiState.update { it.copy(isSaving = false) }
                 onError("No se pudo guardar: ${e.message ?: "Error desconocido"}")
