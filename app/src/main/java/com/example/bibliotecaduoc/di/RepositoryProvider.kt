@@ -1,10 +1,9 @@
 package com.example.bibliotecaduoc.di
 
 import android.content.Context
-import com.example.bibliotecaduoc.data.local.AppDatabase
+import com.example.bibliotecaduoc.data.network.RetrofitClient
 import com.example.bibliotecaduoc.repository.BooksRepository
-import com.example.bibliotecaduoc.repository.InMemoryBooksRepository
-import com.example.bibliotecaduoc.repository.RoomBooksRepository
+import com.example.bibliotecaduoc.repository.NetworkBooksRepository
 
 object RepositoryProvider {
 
@@ -15,8 +14,7 @@ object RepositoryProvider {
         if (_booksRepository == null) {
             synchronized(this) {
                 if (_booksRepository == null) {
-                    val db = AppDatabase.build(context)
-                    _booksRepository = RoomBooksRepository(db)
+                    _booksRepository = NetworkBooksRepository(RetrofitClient.api)
                 }
             }
         }
@@ -24,5 +22,5 @@ object RepositoryProvider {
 
     val booksRepository: BooksRepository
         get() = _booksRepository
-            ?: error("RepositoryProvider no inicializado. Llama a init(context) primero.")
+            ?: error("RepositoryProvider no inicializado")
 }
